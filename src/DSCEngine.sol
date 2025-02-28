@@ -74,7 +74,9 @@ contract DSCEngine is ReentrancyGuard {
 
     // EVENTS
     event collateralDeposited(address indexed user, address indexed token, uint256 indexed amount);
-    event collateralRedeemed(address indexed redeemedFrom, address indexed redeemedTo, address indexed token, uint256 amount);
+    event collateralRedeemed(
+        address indexed redeemedFrom, address indexed redeemedTo, address indexed token, uint256 amount
+    );
 
     // MODIFIERS
     modifier moreThanZero(uint256 _amount) {
@@ -167,7 +169,6 @@ contract DSCEngine is ReentrancyGuard {
     // -$50 DSC (USER 2 PAYS 50$ DSC)
     // gets 74$ collateral of USER 1 by system. (profit 24$)
 
-
     // If we do start nearing undercollateralization, we need someone to liquidate positions
 
     // $100 ETH backing $50 DSC
@@ -179,7 +180,7 @@ contract DSCEngine is ReentrancyGuard {
     // If someone is almost undercollateralized, we will pay you to liquidate them!
 
     /**
-     * 
+     *
      * @param collateralAddress The ERC20 collateral address to liquidate from the user
      * @param user The user who broken the health factor.
      * @param debtToCover The amount of DSC you want to burn to imporve the user's health factor.
@@ -188,9 +189,15 @@ contract DSCEngine is ReentrancyGuard {
      * @notice This function working assumes the protocol will be roughly 200% overcollateralized in order for this to work.
      * @notice A known bug would be if the protocol were 100% or less collateralized, then we wouldn't be able to incentive the liquidators.
      * For example, if the price of the collateral plummeted before anyone could be liquidated.
-     * 
+     *
      */
-    function liquidate(address collateralAddress, address user, uint256 debtToCover) external moreThanZero(debtToCover) checkAddress(user) checkAddress(collateralAddress) nonReentrant {
+    function liquidate(address collateralAddress, address user, uint256 debtToCover)
+        external
+        moreThanZero(debtToCover)
+        checkAddress(user)
+        checkAddress(collateralAddress)
+        nonReentrant
+    {
         // Need to check health factor of a user.
         uint256 startingUserHealthFactor = healthFactor(user);
         require(startingUserHealthFactor <= MIN_HEALTH_FACTOR, DSCEngine__HealthFactorIsOK());
@@ -273,18 +280,17 @@ contract DSCEngine is ReentrancyGuard {
         return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
     }
 
-
     /**
      * @param collateralAddress The address of token to get actual price.
      * @param debtToCover Usd amount in wei.
-     * @return 
+     * @return
      */
-    function getTokenAmountFromUSD(address collateralAddress, uint256 debtToCover) public view returns(uint256) {
+    function getTokenAmountFromUSD(address collateralAddress, uint256 debtToCover) public view returns (uint256) {
         // price of ETH (token)
         // $/ETH ETH
         // $200 / ETH. $100 = 0.5 ETH
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[collateralAddress]);
-        (, int256 price, , ,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.latestRoundData();
         // ($10e18 * le18) / ($2000e8 * lel0)
         // 0.005000000000000000
         return (debtToCover * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
@@ -324,7 +330,9 @@ contract DSCEngine is ReentrancyGuard {
         // return (collateralValueInUSD / totalDSCMinted);  (150 / 100)
     }
 
-    function _redeemCollateral( address from, address to, address tokenCollateralAddress, uint256 amountCollateral) private {
+    function _redeemCollateral(address from, address to, address tokenCollateralAddress, uint256 amountCollateral)
+        private
+    {
         s_collateralDeposited[from][tokenCollateralAddress] -= amountCollateral;
         emit collateralRedeemed(from, to, tokenCollateralAddress, amountCollateral);
 
